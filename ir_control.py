@@ -1,20 +1,135 @@
-from machine import Timer, Pin
+from micropython import const
 from array import array
 from utime import ticks_us, ticks_diff, sleep_ms
+from machine import Pin, PWM, Timer
+from esp32 import RMT
 import time
 
-# https://github.com/peterhinch/micropython_ir/tree/master
+_TBURST = const(563)
+_T_ONE = const(1687)
+# Shared by NEC
+STOP = const(0)  # End of data
+
+# IR abstract base class. Array holds periods in μs between toggling 36/38KHz
+# carrier on or off. Physical transmission occurs in an ISR context controlled
+# by timer 2 and timer 5. See TRANSMITTER.md for details of operation.
+class IR:
+    _active_high = True  # Hardware turns IRLED on if pin goes high.
+    _space = 0  # Duty ratio that causes IRLED to be off
+    timeit = False  # Print timing info
+
+    def __init__(self, pin, cfreq, asize, duty, verbose):
+        self._rmt = RMT(0, pin=pin, clock_div=80, tx_carrier = (cfreq, duty, 1))
+        self._tcb = self._cb  # Pre-allocate
+        self._arr = array('H', 0 for _ in range(asize))  # on/off times (μs)
+        self._mva = memoryview(self._arr)
+        # Subclass interface
+        self.verbose = verbose
+        self.carrier = False  # Notional carrier state while encoding biphase
+        self.aptr = 0  # Index into array
+        self._busy = False
+
+    def _cb(self, t):  # T5 callback, generate a carrier mark or space
+        self._busy = True
+        t.deinit()
+        p = self.aptr
+        v = self._arr[p]
+        if v == STOP:
+            self._ch.pulse_width_percent(self._space)  # Turn off IR LED.
+            self._busy = False
+            return
+        self._ch.pulse_width_percent(self._space if p & 1 else self._duty)
+        self._tim.init(prescaler=84, period=v, callback=self._tcb)
+        self.aptr += 1
+
+    def busy(self):
+        return not self._rmt.wait_done()
+
+    # Public interface
+    # Before populating array, zero pointer, set notional carrier state (off).
+    def transmit(self, addr, data, toggle=0, validate=False):  # NEC: toggle is unused
+        while self.busy():
+            pass
+        t = ticks_us()
+        if validate:
+            if addr > self.valid[0] or addr < 0:
+                raise ValueError('Address out of range', addr)
+            if data > self.valid[1] or data < 0:
+                raise ValueError('Data out of range', data)
+            if toggle > self.valid[2] or toggle < 0:
+                raise ValueError('Toggle out of range', toggle)
+        self.aptr = 0  # Inital conditions for tx: index into array
+        self.carrier = False
+        self.tx(addr, data, toggle)  # Subclass populates ._arr
+        self.trigger()  # Initiate transmission
+        if self.timeit:
+            dt = ticks_diff(ticks_us(), t)
+            print('Time = {}μs'.format(dt))
+        sleep_ms(1)  # Ensure ._busy is set prior to return
+
+    # Subclass interface
+    def trigger(self):  # Used by NEC to initiate a repeat frame
+        self._rmt.write_pulses(tuple(self._mva[0 : self.aptr]))
+        
+    def append(self, *times):  # Append one or more time peiods to ._arr
+        for t in times:
+            self._arr[self.aptr] = t
+            self.aptr += 1
+            self.carrier = not self.carrier  # Keep track of carrier state
+            self.verbose and print('append', t, 'carrier', self.carrier)
+
+    def add(self, t):  # Increase last time value (for biphase)
+        assert t > 0
+        self.verbose and print('add', t)
+        # .carrier unaffected
+        self._arr[self.aptr - 1] += t
 
 
-# from micropython import alloc_emergency_exception_buf
-# alloc_emergency_exception_buf(100)
+# Given an iterable (e.g. list or tuple) of times, emit it as an IR stream.
+class Player(IR):
 
+    def __init__(self, pin, freq=38000, verbose=False, asize=68):  # NEC specifies 38KHz
+        super().__init__(pin, freq, asize, 33, verbose)  # Measured duty ratio 33%
 
-# On 1st edge start a block timer. While the timer is running, record the time
-# of each edge. When the timer times out decode the data. Duration must exceed
-# the worst case block transmission time, but be less than the interval between
-# a block start and a repeat code start (~108ms depending on protocol)
+    def play(self, lst):
+        for x, t in enumerate(lst):
+            self._arr[x] = t
+        self.aptr = x + 1
+        self.trigger()
 
+class NEC(IR):
+    valid = (0xffff, 0xff, 0)  # Max addr, data, toggle
+    samsung = False
+
+    def __init__(self, pin, freq=38000, verbose=False):  # NEC specifies 38KHz also Samsung
+        super().__init__(pin, freq, 68, 33, verbose)  # Measured duty ratio 33%
+
+    def _bit(self, b):
+        self.append(_TBURST, _T_ONE if b else _TBURST)
+
+    def tx(self, addr, data, _):  # Ignore toggle
+        if self.samsung:
+            self.append(4500, 4500)
+        else:
+            self.append(9000, 4500)
+        if addr < 256:  # Short address: append complement
+            if self.samsung:
+              addr |= addr << 8
+            else:
+              addr |= ((addr ^ 0xff) << 8)
+        for _ in range(16):
+            self._bit(addr & 1)
+            addr >>= 1
+        data |= ((data ^ 0xff) << 8)
+        for _ in range(16):
+            self._bit(data & 1)
+            data >>= 1
+        self.append(_TBURST)
+
+    def repeat(self):
+        self.aptr = 0
+        self.append(9000, 2250, _TBURST)
+        self.trigger()  # Initiate physical transmission.
 
 class IR_RX:
     Timer_id = -1  # Software timer but enable override
@@ -216,18 +331,55 @@ def test():
 
 print("ir test")
 
-test()
+#test()
 
+lastSendAddr = -1
+lastRXData = -1
+lastRXAddr = -1
 def callback(data, addr, ctrl):
+    global lastSendAddr,lastRXData,lastRXAddr
     if data < 0:  # NEC protocol sends repeat codes.
         print('Repeat code.')
+    elif addr == lastSendAddr:
+        #print("ignoring")
+        lastSendAddr = -1
+        return
     else:
+        lastRXData = data
+        lastRXAddr = addr
         print('Data {:02x} Addr {:04x}'.format(data, addr))
 
 ir = NEC_8(Pin(18, Pin.IN), callback)
-red = Pin(22, Pin.OUT)
-while True:
-    time.sleep_ms(500)
-    red.on()
-    time.sleep_ms(500)
-    red.off()
+
+pin = Pin(19, Pin.OUT)
+irTransmit = NEC(pin)
+
+def IR_send_message(addr, data):
+    global lastSendAddr
+    lastSendAddr = addr
+    irTransmit.transmit(addr,data)
+    
+"""
+returns data,address: both will return -1
+if no new message has been received
+"""
+def IR_get_last_rx_message():
+    global lastSendAddr,lastRXData,lastRXAddr
+    tempData = lastRXData
+    tempAddr = lastRXAddr
+    lastRXData = -1
+    lastRXAddr = -1
+    return (tempData, tempAddr)
+    
+"""while True:
+    
+    print("txing")
+    #IR_send_message(20,50)
+    time.sleep(1)
+    
+    print(IR_get_last_rx_message())
+    irTransmit.transmit(21,51)
+    time.sleep(1)
+    print(IR_get_last_rx_message())
+    
+    #irTransmit.repeat()"""

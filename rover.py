@@ -6,6 +6,11 @@ from ubinascii import hexlify
 from machine import Pin, PWM
 import math
 
+left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
+left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)
+right_LPin = PWM(Pin(16), freq=1_000, duty_u16=0)
+right_RPin = PWM(Pin(4), freq=1_000, duty_u16=0)
+
 _ADV_TYPE_FLAGS = const(0x01)
 _ADV_TYPE_NAME = const(0x09)
 _ADV_TYPE_UUID16_COMPLETE = const(0x03)
@@ -116,10 +121,6 @@ def to_u16(value) -> int:
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
-left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
-left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)
-right_LPin = PWM(Pin(16), freq=1_000, duty_u16=0)
-right_RPin = PWM(Pin(4), freq=1_000, duty_u16=0)
 
 UPPER_DEADBAND = 3
 LOWER_DEADBAND = -3
