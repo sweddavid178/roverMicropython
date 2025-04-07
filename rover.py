@@ -63,13 +63,21 @@ class BLEJoystick:
         self.x = 128
         self.y = 128
         self.trigger = 0
-        self.btn = 0
+        self.btnA = 0
+        self.btnB = 0
+        self.btnX = 0
+        self.btnY = 0
+        self.addr = b''
+
+    def setMacAddress(self, addr):
+        self.addr = addr
+        self.start_scan()
 
     def ble_irq(self, event, data):
         if event == _IRQ_SCAN_RESULT:
             addr_type, addr, adv_type, rssi, adv_data = data
             print("test: ", hexlify(addr), " data: ", str(adv_data))
-            if b'd0547b4c4b89' == hexlify(addr):  # Check if advertisement contains 'Joystick'
+            if self.addr == hexlify(addr):  # Check if advertisement contains 'Joystick'
                 print("Found Joystick at", hexlify(addr))
                 self.found_device = (addr_type, addr)
                 self.ble.gap_scan(None)  # Stop scanning
@@ -108,6 +116,15 @@ class BLEJoystick:
             self.x = data[2] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
             print(f"Joystick X: {self.x}, Y: {self.y}, btn {self.btn}, trg {self.trigger} {hexlify(data)}")
+
+    def btnAPressed(self):
+        return 0
+    def btnBPressed(self):
+        return 0
+    def btnXPressed(self):
+        return 0
+    def btnYPressed(self):
+        return 0    
 
     def start_scan(self):
         print("Scanning for joystick...")
@@ -195,14 +212,7 @@ def set_external_led(red,green,blue):
     ext_blue_pwm.duty_u16(b)
 
 joystick = BLEJoystick()
-joystick.start_scan()
+#joystick.start_scan()
 
-"""while True:
-    drive(joystick.x, joystick.y)
-    if joystick.trigger == 0:
-        setServoAngle(45)
-        set_internal_led(0,0,0)
-    else:
-        setServoAngle(0)
-        set_internal_led(100,100,100)
-    time.sleep(0.05)"""
+def getLightSensorPeriod():
+    return 0
