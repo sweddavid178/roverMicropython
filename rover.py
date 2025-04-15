@@ -62,11 +62,16 @@ class BLEJoystick:
         self.scanning = False
         self.x = 128
         self.y = 128
-        self.trigger = 0
-        self.btnA = 0
-        self.btnB = 0
-        self.btnX = 0
-        self.btnY = 0
+        self.trigger = False
+        self.btnA = False
+        self.btnB = False
+        self.btnX = False
+        self.btnY = False
+        self.lastTrigger = False
+        self.lastBtnA = False
+        self.lastBtnB = False
+        self.lastBtnX = False
+        self.lastBtnY = False
         self.addr = b''
 
     def setMacAddress(self, addr):
@@ -111,20 +116,39 @@ class BLEJoystick:
             #right ffff0080
             #left 00007b7b
             #backward 8c8cffff
-            self.btn = data[7]
-            self.trigger = data[8]
+            self.btnA = (data[7] & 1 != 0)
+            self.btnB = (data[7] & 2 != 0)
+            self.btnX = (data[7] & 4 != 0)
+            self.btnY = (data[7] & 8 != 0)
+            self.trigger = (data[8] & 8 != 0)
             self.x = data[2] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
-            print(f"Joystick X: {self.x}, Y: {self.y}, btn {self.btn}, trg {self.trigger} {hexlify(data)}")
+            print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
 
     def btnAPressed(self):
-        return 0
+        ret = False
+        if self.btnA == True and self.lastBtnA == False:
+            ret = True
+        self.lastBtnA = self.btnA
+        return ret
     def btnBPressed(self):
-        return 0
+        ret = False
+        if self.btnB == True and self.lastBtnB == False:
+            ret = True
+        self.lastBtnB = self.btnB
+        return ret
     def btnXPressed(self):
-        return 0
+        ret = False
+        if self.btnX == True and self.lastBtnX == False:
+            ret = True
+        self.lastBtnX = self.btnX
+        return ret
     def btnYPressed(self):
-        return 0    
+        ret = False
+        if self.btnY == True and self.lastBtnY == False:
+            ret = True
+        self.lastBtnY = self.btnY
+        return ret   
 
     def start_scan(self):
         print("Scanning for joystick...")
