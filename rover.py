@@ -165,10 +165,16 @@ def clamp(n, minn, maxn):
 
 UPPER_DEADBAND = 3
 LOWER_DEADBAND = -3
-
+lastLeft = 0
+lastRight = 0
+ALPHA = 0.1
 def drive(x,y):
     leftVal = clamp((y+x)-255, -127, 127)
+    leftVal = leftVal*ALPHA + lastLeft*(1-ALPHA)
+    lastLeft = leftVal
     rightVal = clamp(((y-127)-(x-127)), -127, 127)
+    rightVal = rightVal*ALPHA + lastRight*(1-ALPHA)
+    lastRight = rightVal
     if leftVal > UPPER_DEADBAND:
         left_RPin.duty_u16(to_u16(0))
         left_LPin.duty_u16(to_u16(leftVal))
