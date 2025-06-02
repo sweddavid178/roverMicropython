@@ -132,7 +132,7 @@ class NEC(IR):
         self.trigger()  # Initiate physical transmission.
 
 class IR_RX:
-    Timer_id = -1  # Software timer but enable override
+    Timer_id = 0  # Software timer but enable override
     # Result/error codes
     # Repeat button code
     REPEAT = -1
