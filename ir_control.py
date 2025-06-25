@@ -193,7 +193,7 @@ class NEC_ABC(IR_RX):
 
     def decode(self, _):
         try:
-            if self.edge > 68:
+            if self.edge > 70:
                 raise RuntimeError(self.OVERRUN)
             width = ticks_diff(self._times[1], self._times[0])
             if width < self._leader:  # 9ms leading mark for all valid data
@@ -216,12 +216,12 @@ class NEC_ABC(IR_RX):
                 raise RuntimeError(self.BADSTART)
             addr = val & 0xff  # 8 bit addr
             cmd = (val >> 16) & 0xff
-            if cmd != (val >> 24) ^ 0xff:
+            """if cmd != (val >> 24) ^ 0xff:
                 raise RuntimeError(self.BADDATA)
             if addr != ((val >> 8) ^ 0xff) & 0xff:  # 8 bit addr doesn't match check
                 if not self._extended:
                     raise RuntimeError(self.BADADDR)
-                addr |= val & 0xff00  # pass assumed 16 bit address to callback
+                addr |= val & 0xff00  # pass assumed 16 bit address to callback"""
             self._addr = addr
         except RuntimeError as e:
             cmd = e.args[0]
