@@ -16,9 +16,9 @@ commands = [
     ["esptool", "--baud", "460800", "write_flash", "0x1000", "ESP32_GENERIC-20250415-v1.25.0.bin"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "rover.py", ":rover.py"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "ir_control.py", ":ir_control.py"],
-    ["python", "pyboard.py", "--device", com_port, "-f", "cp", "main.py", ":main.py"]
+    ["python", "pyboard.py", "--device", com_port, "-f", "cp", "main.py", ":main.py"],
+    ["python", "pyboard.py", "--device", com_port, "systemTest.py"],
 ]
-
 for cmd in commands:
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd)

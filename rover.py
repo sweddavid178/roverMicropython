@@ -266,11 +266,11 @@ ext_blue_pwm = PWM(Pin(26), freq=1_000, duty_u16=U16)
 
 #input values are 0-100, with 100 being max brightness
 def set_external_led(red,green,blue):
-    r = U16 - min(max(math.floor(red / 100 * U16), 0), U16)
+    r = U16 - min(max(math.floor((1-red / 100) * U16), 0), U16)
     ext_red_pwm.duty_u16(r)
-    g = U16 - min(max(math.floor(green / 100 * U16), 0), U16)
+    g = U16 - min(max(math.floor((1-green / 100) * U16), 0), U16)
     ext_green_pwm.duty_u16(g)
-    b = U16 - min(max(math.floor(blue / 100 * U16), 0), U16)
+    b = U16 - min(max(math.floor((1-blue / 100) * U16), 0), U16)
     ext_blue_pwm.duty_u16(b)
 
 joystick = BLEJoystick()
