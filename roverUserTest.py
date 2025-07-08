@@ -1,5 +1,5 @@
 #Python imports
-from rover import joystick, drive, setServoAngle, set_internal_led, getLightSensorPeriod
+from rover import joystick, drive, setServoAngle, set_internal_led, getLightSensorPeriod, set_external_led
 from ir_control import IR_send_message, IR_get_last_rx_message
 import time
 
@@ -15,7 +15,7 @@ while True:
     drive(joystick.x, joystick.y)
 
     #if trigger is held
-    if joystick.trigger == 8:
+    if joystick.trigger:
         setServoAngle(0)
         set_internal_led(100,100,100)
         IR_send_message(20,44)
@@ -26,6 +26,7 @@ while True:
     #volcano challenge
     if joystick.btnA == 1:
         volacanoPeriod = getLightSensorPeriod()
+        print("volcano period: " + str(volacanoPeriod))
     if joystick.btnAPressed() == 1:
         IR_send_message(20,volacanoPeriod) 
         
@@ -45,5 +46,4 @@ while True:
         IR_send_message(20,44)
     
     
-    print("test")
     time.sleep(0.05) #loop speed controller

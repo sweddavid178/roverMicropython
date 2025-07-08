@@ -25,11 +25,11 @@ while True:
         if irAddress == 0:
             IR_send_message(100,irData+5)
         elif irAddress == 1:
-            IR_send_message(100,irData-7)
+            IR_send_message(100,irData+7)
         elif irAddress == 2:
             IR_send_message(100,irData+28)
         elif irAddress == 3:
-            IR_send_message(100,irData-50)
+            IR_send_message(100,irData+50)
         elif irAddress == 4:
             IR_send_message(100,irData+64)
     

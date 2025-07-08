@@ -3,8 +3,33 @@ import struct
 import time
 from micropython import const
 from ubinascii import hexlify
-from machine import Pin, PWM
+from machine import Pin, PWM, Timer
 import math
+
+count = 0
+lightPeriod = 0
+lightSensor = Pin(17, Pin.IN)
+lastSensor = 0
+
+# Callback function for the timer
+def measure_light(timer):
+    global count, lightPeriod, lightSensor, lastSensor
+    currentValue = lightSensor.value()
+    if (currentValue == 1):
+        count += 1
+    
+    if lastSensor == 1 and currentValue == 0:
+        if lightPeriod == 0:
+            lightPeriod = count
+        else:
+            lightPeriod = round(count * 0.3 + lightPeriod * 0.7) #filter results for more consistancy
+    if currentValue == 0:
+        count = 0
+    lastSensor = currentValue
+
+# Create a periodic timer
+light_timer = Timer(1)
+light_timer.init(mode=Timer.PERIODIC, period=100, callback=measure_light)  # Timer repeats every half second
 
 left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
 left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)
@@ -123,7 +148,7 @@ class BLEJoystick:
             self.trigger = (data[8] & 8 != 0)
             self.x = data[2] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
-            print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
+            #print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
 
     def btnAPressed(self):
         ret = False
@@ -148,7 +173,13 @@ class BLEJoystick:
         if self.btnY == True and self.lastBtnY == False:
             ret = True
         self.lastBtnY = self.btnY
-        return ret   
+        return ret
+    def triggerPressed(self):
+        ret = False
+        if self.trigger == True and self.lastTrigger == False:
+            ret = True
+        self.lastTrigger = self.trigger
+        return ret  
 
     def start_scan(self):
         print("Scanning for joystick...")
@@ -163,12 +194,13 @@ def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
 
-UPPER_DEADBAND = 3
-LOWER_DEADBAND = -3
 lastLeft = 0
 lastRight = 0
-ALPHA = 0.1
 def drive(x,y):
+    global lastLeft, lastRight
+    UPPER_DEADBAND = 3
+    LOWER_DEADBAND = -3
+    ALPHA = 0.3
     leftVal = clamp((y+x)-255, -127, 127)
     leftVal = leftVal*ALPHA + lastLeft*(1-ALPHA)
     lastLeft = leftVal
@@ -245,4 +277,6 @@ joystick = BLEJoystick()
 #joystick.start_scan()
 
 def getLightSensorPeriod():
-    return 0
+    global lightPeriod
+    return lightPeriod
+
