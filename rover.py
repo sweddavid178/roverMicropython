@@ -16,7 +16,7 @@ def measure_light(timer):
     global count, lightPeriod, lightSensor, lastSensor
     currentValue = lightSensor.value()
     if (currentValue == 1):
-        count += 1
+        count += 50 #increment count by 50ms
     
     if lastSensor == 1 and currentValue == 0:
         if lightPeriod == 0:
@@ -29,7 +29,7 @@ def measure_light(timer):
 
 # Create a periodic timer
 light_timer = Timer(1)
-light_timer.init(mode=Timer.PERIODIC, period=100, callback=measure_light)  # Timer repeats every half second
+light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Timer repeats every half second
 
 left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
 left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)
