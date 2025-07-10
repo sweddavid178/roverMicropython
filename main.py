@@ -1,6 +1,6 @@
 #Python imports
-from rover import joystick, drive, setServoAngle, set_internal_led, getLightSensorPeriod
-from ir_control import IR_send_message, IR_get_last_rx_message
+from rover import *
+from ir_control import *
 import time
 
 #setup and start joystick

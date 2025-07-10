@@ -10,23 +10,51 @@ count = 0
 lightPeriod = 0
 lightSensor = Pin(17, Pin.IN)
 lastSensor = 0
+internalR = 0
+internalG = 0
+internalB = 0
+ledCount = 0
+ledState = False
+
+def blinkControl():
+    global internalR, internalG, internalB, ledCount, ledState
+    period = 0
+    ledCount += 1
+    if internalR == 0 and internalG == 0 and internalB == 0:
+        m_set_internal_led(0, 0, 0)  # Red
+    if internalR >= internalG and internalR >= internalB:
+        period = 10
+    elif internalG >= internalR and internalG >= internalB:
+        period = 5
+    elif internalB >= internalR and internalB >= internalG:
+        period = 2
+    else:
+        period = 0
+    if ledCount % period == 0:
+        ledState = not ledState
+    if ledState:
+        m_set_internal_led(internalR, internalG, internalB)
+    else:
+        m_set_internal_led(0, 0, 0)
 
 # Callback function for the timer
 def measure_light(timer):
-    global count, lightPeriod, lightSensor, lastSensor
+    global count, lightPeriod, lightSensor, lastSensor, internalR, internalG, internalB, ledCount
     currentValue = lightSensor.value()
     if (currentValue == 1):
-        count += 50 #increment count by 50ms
+        count += 5 #increment count by 50ms
     
     if lastSensor == 1 and currentValue == 0:
         if lightPeriod == 0:
             lightPeriod = count
         else:
-            lightPeriod = round(count * 0.3 + lightPeriod * 0.7) #filter results for more consistancy
+            lightPeriod = round(count*2 * 0.5 + lightPeriod * 0.5) #filter results for more consistancy
     if currentValue == 0:
         count = 0
+    
     lastSensor = currentValue
-
+    blinkControl()  # Call the blink control function
+    
 # Create a periodic timer
 light_timer = Timer(1)
 light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Timer repeats every half second
@@ -106,7 +134,7 @@ class BLEJoystick:
     def ble_irq(self, event, data):
         if event == _IRQ_SCAN_RESULT:
             addr_type, addr, adv_type, rssi, adv_data = data
-            print("test: ", hexlify(addr), " data: ", str(adv_data))
+            #print("test: ", hexlify(addr), " data: ", str(adv_data))
             if self.addr == hexlify(addr):  # Check if advertisement contains 'Joystick'
                 print("Found Joystick at", hexlify(addr))
                 self.found_device = (addr_type, addr)
@@ -115,6 +143,9 @@ class BLEJoystick:
 
         elif event == _IRQ_SCAN_COMPLETE:
             print("Scan complete.")
+            if self.found_device == None:
+                print("no joystsick found, trying again")
+                self.start_scan()
 
         elif event == _IRQ_GATTC_SERVICE_RESULT:
             conn_handle, start_handle, end_handle, uuid = data
@@ -253,6 +284,13 @@ int_blue_pwm = PWM(Pin(32), freq=1_000, duty_u16=U16)
 
 #input values are 0-100, with 100 being max brightness
 def set_internal_led(red,green,blue):
+    global internalR, internalG, internalB
+    internalR = red
+    internalG = green
+    internalB = blue
+    #m_set_internal_led(internalR, internalG, internalB)
+
+def m_set_internal_led(red,green,blue):
     r = U16 - min(max(math.floor(red / 100 * U16), 0), U16)
     int_red_pwm.duty_u16(r)
     g = U16 - min(max(math.floor(green / 100 * U16), 0), U16)
@@ -272,11 +310,12 @@ def set_external_led(red,green,blue):
     ext_green_pwm.duty_u16(g)
     b = U16 - min(max(math.floor((1-blue / 100) * U16), 0), U16)
     ext_blue_pwm.duty_u16(b)
-
+set_external_led(0,0,0)
 joystick = BLEJoystick()
 #joystick.start_scan()
 
 def getLightSensorPeriod():
     global lightPeriod
     return lightPeriod
+
 
