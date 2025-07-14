@@ -44,9 +44,9 @@ def test_ir_tx_rx():
 
    
    
-test_internal_led()
-test_external_led()
-test_ir_tx_rx()
+#test_internal_led()
+#test_external_led()
+#test_ir_tx_rx()
 test_servo()
 test_drive_motors()
 

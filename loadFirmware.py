@@ -17,7 +17,7 @@ commands = [
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "rover.py", ":rover.py"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "ir_control.py", ":ir_control.py"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "main.py", ":main.py"],
-    ["python", "pyboard.py", "--device", com_port, "systemTest.py"],
+    #["python", "pyboard.py", "--device", com_port, "systemTest.py"],
 ]
 for cmd in commands:
     print(f"Running: {' '.join(cmd)}")

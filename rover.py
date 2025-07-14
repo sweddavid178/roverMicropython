@@ -144,8 +144,10 @@ class BLEJoystick:
         elif event == _IRQ_SCAN_COMPLETE:
             print("Scan complete.")
             if self.found_device == None:
-                print("no joystsick found, trying again")
-                self.start_scan()
+                print("no joystsick found")
+                set_internal_led(100, 0, 0)  # Red LED to indicate no joystick found
+            else:
+                set_internal_led(0, 100, 0)  # Green LED to indicate joystick found
 
         elif event == _IRQ_GATTC_SERVICE_RESULT:
             conn_handle, start_handle, end_handle, uuid = data
