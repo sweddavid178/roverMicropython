@@ -179,7 +179,7 @@ class BLEJoystick:
             self.btnX = (data[7] & 4 != 0)
             self.btnY = (data[7] & 8 != 0)
             self.trigger = (data[8] & 8 != 0)
-            self.x = data[2] #0-255, 128 is stop
+            self.x = data[1] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
             #print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
 
