@@ -145,9 +145,11 @@ class BLEJoystick:
             print("Scan complete.")
             if self.found_device == None:
                 print("no joystsick found")
-                set_internal_led(100, 0, 0)  # Red LED to indicate no joystick found
+                set_internal_led(100,0,0)
+                #self.start_scan()
             else:
-                set_internal_led(0, 100, 0)  # Green LED to indicate joystick found
+                set_internal_led(0,100,0)
+            time.sleep(1)
 
         elif event == _IRQ_GATTC_SERVICE_RESULT:
             conn_handle, start_handle, end_handle, uuid = data
@@ -179,9 +181,9 @@ class BLEJoystick:
             self.btnX = (data[7] & 4 != 0)
             self.btnY = (data[7] & 8 != 0)
             self.trigger = (data[8] & 8 != 0)
-            self.x = data[1] #0-255, 128 is stop
+            self.x = data[2] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
-            #print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
+            print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
 
     def btnAPressed(self):
         ret = False
@@ -319,5 +321,3 @@ joystick = BLEJoystick()
 def getLightSensorPeriod():
     global lightPeriod
     return lightPeriod
-
-
