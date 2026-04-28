@@ -46,7 +46,7 @@ def measure_light(timer):
     
     if lastSensor == 1 and currentValue == 0:
         if lightPeriod == 0:
-            lightPeriod = count
+            lightPeriod = count*2
         else:
             lightPeriod = round(count*2 * 0.5 + lightPeriod * 0.5) #filter results for more consistancy
     if currentValue == 0:
