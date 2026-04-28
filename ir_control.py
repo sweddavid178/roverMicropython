@@ -30,7 +30,6 @@ class IR:
         self._busy = False
 
     def _cb(self, t):  # T5 callback, generate a carrier mark or space
-        self._busy = True
         t.deinit()
         p = self.aptr
         v = self._arr[p]
@@ -43,7 +42,7 @@ class IR:
         self.aptr += 1
 
     def busy(self):
-        return not self._rmt.wait_done()
+        return self._busy or not self._rmt.wait_done()
 
     # Public interface
     # Before populating array, zero pointer, set notional carrier state (off).
@@ -58,6 +57,7 @@ class IR:
                 raise ValueError('Data out of range', data)
             if toggle > self.valid[2] or toggle < 0:
                 raise ValueError('Toggle out of range', toggle)
+        self.busy = True # Mark as busy
         self.aptr = 0  # Inital conditions for tx: index into array
         self.carrier = False
         self.tx(addr, data, toggle)  # Subclass populates ._arr
@@ -65,7 +65,6 @@ class IR:
         if self.timeit:
             dt = ticks_diff(ticks_us(), t)
             print('Time = {}μs'.format(dt))
-        sleep_ms(1)  # Ensure ._busy is set prior to return
 
     # Subclass interface
     def trigger(self):  # Used by NEC to initiate a repeat frame
