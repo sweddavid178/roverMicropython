@@ -5,6 +5,7 @@ from micropython import const
 from ubinascii import hexlify
 from machine import Pin, PWM, Timer
 import math
+import network
 
 count = 0
 lightPeriod = 0
@@ -58,6 +59,23 @@ def measure_light(timer):
 # Create a periodic timer
 light_timer = Timer(1)
 light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Timer repeats every half second
+
+# Get MAC address
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+mac = wlan.config('mac')
+mac_str = ':'.join('{:02x}'.format(b) for b in mac)
+
+def send_mac_address(uart, mac_str):
+    """Send the MAC address over UART."""
+    uart.write('MAC: {}\n'.format(mac_str))
+    print('Sent MAC address:', mac_str)
+
+# Create a periodic timer for sending mac address
+# UART setup (change pins and baudrate as needed)
+uart = machine.UART(1, baudrate=9600,tx=43,rx=44)  # Example pins for ESP32
+mac_timer = Timer(2)
+mac_timer.init(mode=Timer.PERIODIC, period=1000, callback=lambda t: send_mac_address(uart, mac_str))
 
 left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
 left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)

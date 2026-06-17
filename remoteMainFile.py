@@ -1,4 +1,15 @@
 import time
+import machine
+import network
+
+# UART setup (change pins and baudrate as needed)
+uart = machine.UART(1, baudrate=9600, tx=17, rx=18)  # pins for ESP32s3
+
+# Get MAC address
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+mac = wlan.config('mac')
+mac_str = ':'.join('{:02x}'.format(b) for b in mac)
 
 # analog id -> human name
 ANALOG_MAP = {
@@ -8,18 +19,6 @@ ANALOG_MAP = {
     6:  "left_y",    # left joystick Y
     10: "voltage",   # battery voltage / analog sensor
 }
-
-# Create a dense list (index == analog id). Unassigned entries default to 0.
-_max_analog_id = max(ANALOG_MAP.keys())
-analog_inputs = [0] * (_max_analog_id + 1)
-
-# Fill in known analogs. Replace the 0 values with actual ADC-like objects or callables,
-# e.g. analog_inputs[1] = machine.ADC(0) or analog_inputs[10] = lambda: read_battery_mv()
-for _id, _name in ANALOG_MAP.items():
-    analog_inputs[_id] = 0  # placeholder; substitute with actual ADC/callable as needed
-
-# optional: a human-readable mapping for debugging
-analog_names = {i: ANALOG_MAP[i] for i in ANALOG_MAP}
 
 # button id -> human name
 BUTTON_MAP = {
@@ -43,101 +42,61 @@ BUTTON_MAP = {
     47: "left_thumb",
 }
 
-# Create a dense list (index == button id).  Unassigned entries default to 0.
-_max_id = max(BUTTON_MAP.keys())
-button_inputs = [0] * (_max_id + 1)
-
-# Fill in known buttons. Replace the 0 values with actual Pin-like objects or callables,
-# e.g. button_inputs[7] = machine.Pin(5, machine.Pin.IN) or button_inputs[9] = lambda: read_gpio(9)
-for _id, _name in BUTTON_MAP.items():
-    button_inputs[_id] = 0  # placeholder; substitute with actual pin/callable as needed
-
-# optional: a human-readable mapping for debugging
-button_names = {i: BUTTON_MAP[i] for i in BUTTON_MAP}
-
-
-def read_all_button_states(button_inputs):
+def _read_adc_value(pin_no):
+    """Try to read an analog value from the given GPIO pin number.
+    Returns a tuple (raw, normalized) or (None, None) on error.
     """
-    Read states for all buttons and return a comma-separated string of 0/1 values.
+    try:
+        adc = machine.ADC(machine.Pin(pin_no))
+    except Exception as e:
+        # Could not construct ADC for that pin
+        return None, None
 
-    button_inputs can be:
-    - an ordered iterable (list/tuple) of Pin-like objects or callables,
-    - a mapping (dict or dict-like) of id->Pin-like or id->callable (will be sorted by key).
-
-    A "Pin-like" object is anything with a .value() method (e.g. machine.Pin).
-    A callable is called with no arguments and should return a truthy/falsy value.
-    """
-    def _read(src):
-        # Pin-like
-        if hasattr(src, "value") and callable(getattr(src, "value")):
-            try:
-                return int(bool(src.value()))
-            except Exception:
-                return 0
-        # callable
-        if callable(src):
-            try:
-                return int(bool(src()))
-            except Exception:
-                return 0
-        # already a numeric/boolean value
+    # MicroPython ports differ: try read_u16(), otherwise read()
+    try:
+        raw = adc.read_u16()
+        # read_u16 returns 0..65535
+        norm = raw / 65535.0
+    except AttributeError:
         try:
-            return int(bool(src))
+            raw = adc.read()  # common on some ports (0..4095)
+            norm = raw / 4095.0 if raw is not None else None
         except Exception:
-            return 0
+            return None, None
 
-    values = []
-    # treat mapping-like objects that expose .items() as mappings
-    if hasattr(button_inputs, "items"):
-        for key in sorted(button_inputs):
-            values.append(str(_read(button_inputs[key])))
-    else:
-        for src in button_inputs:
-            values.append(str(_read(src)))
+    return raw, norm
 
-    return ",".join(values)
-
-
-def read_all_analog_values(analog_inputs):
+def read_all_analog_values(analog_map):
+    """Read all analog values from the given map of id -> name.
+    Returns a string of comma-separated name=value pairs.
     """
-    Read values for all analog sticks and return a comma-separated string of integer values.
+    readings = ""
+    for aid, name in analog_map.items():
+        raw, norm = _read_adc_value(aid)
+        if raw is not None:
+            readings += f"{norm:.3f},"
+        else:
+            readings += f"0.000,"  # or "ERROR" if you prefer
+    return readings
 
-    analog_inputs can be:
-    - an ordered iterable (list/tuple) of ADC-like objects, callables, or numeric values,
-    - a mapping (dict or dict-like) of id->ADC-like or id->callable (will be sorted by key).
-
-    Supported read methods (in order): read_u16(), read(), value(), callable().
-    Falls back to treating the source as a numeric value. Any failures return 0 for that entry.
+def read_all_button_states(button_map):
+    """Read all button states from the given map of id -> name.
+    Returns a string of comma-separated names for pressed buttons.
     """
-    def _read(src):
+    readings = ""
+    for bid, name in button_map.items():
         try:
-            # ADC with 16-bit read
-            if hasattr(src, "read_u16") and callable(getattr(src, "read_u16")):
-                return int(src.read_u16())
-            # Common MicroPython ADC read
-            if hasattr(src, "read") and callable(getattr(src, "read")):
-                return int(src.read())
-            # Pin-like value method
-            if hasattr(src, "value") and callable(getattr(src, "value")):
-                return int(src.value())
-            # Callable provider
-            if callable(src):
-                return int(src())
-            # Already a numeric/boolean value
-            return int(src)
+            pin = machine.Pin(bid, machine.Pin.IN, machine.Pin.PULL_UP)
+            readings += f"{pin.value()},"
+            
         except Exception:
-            return 0
+            pass  # ignore errors for missing pins
+    return readings
 
-    values = []
-    if hasattr(analog_inputs, "items"):
-        for key in sorted(analog_inputs):
-            values.append(str(_read(analog_inputs[key])))
-    else:
-        for src in analog_inputs:
-            values.append(str(_read(src)))
-
-    return ",".join(values)
-
+def send_mac_address(uart, mac_str):
+    """Send the MAC address over UART."""
+    uart.write('MAC: {}\n'.format(mac_str))
+    print('Sent MAC address:', mac_str)
 
 if __name__ == "__main__":
 
@@ -145,8 +104,9 @@ if __name__ == "__main__":
         while True:
             buttons = read_all_button_states(BUTTON_MAP)
             analogs = read_all_analog_values(ANALOG_MAP)
-            out = buttons + ("," + analogs if buttons and analogs else analogs if not buttons else "")
+            out = buttons + analogs 
             print(out)
+            send_mac_address(uart, mac_str)
             time.sleep(0.1)
     except KeyboardInterrupt:
         pass
