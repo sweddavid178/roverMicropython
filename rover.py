@@ -25,19 +25,16 @@ def to_u16(value) -> int:
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
-#pwm led stuff
-#int_red_pin = Pin(25)
-int_red_pwm = PWM(Pin(16), freq=1_000, duty_u16=U16)
-int_green_pwm = PWM(Pin(15), freq=1_000, duty_u16=U16)
-int_blue_pwm = PWM(Pin(7), freq=1_000, duty_u16=U16)
+#digital led stuff
+int_red_pin = Pin(16, Pin.OUT)
+int_green_pin = Pin(15, Pin.OUT)
+int_blue_pin = Pin(7, Pin.OUT)
 
 def m_set_internal_led(red,green,blue):
-    r = U16 - min(max(math.floor(red / 100 * U16), 0), U16)
-    int_red_pwm.duty_u16(r)
-    g = U16 - min(max(math.floor(green / 100 * U16), 0), U16)
-    int_green_pwm.duty_u16(g)
-    b = U16 - min(max(math.floor(blue / 100 * U16), 0), U16)
-    int_blue_pwm.duty_u16(b)
+    int_red_pin.value(1 if red > 0 else 0)
+    int_green_pin.value(1 if green > 0 else 0)
+    int_blue_pin.value(1 if blue > 0 else 0)
+    
 
 def blinkControl():
     global internalR, internalG, internalB, ledCount, ledState
@@ -60,27 +57,6 @@ def blinkControl():
     else:
         m_set_internal_led(0, 0, 0)
 
-# Callback function for the timer
-def measure_light(timer):
-    global count, lightPeriod, lightSensor, lastSensor, internalR, internalG, internalB, ledCount
-    currentValue = lightSensor.value()
-    if (currentValue == 1):
-        count += 5 #increment count by 50ms
-    
-    if lastSensor == 1 and currentValue == 0:
-        if lightPeriod == 0:
-            lightPeriod = count
-        else:
-            lightPeriod = round(count*2 * 0.5 + lightPeriod * 0.5) #filter results for more consistancy
-    if currentValue == 0:
-        count = 0
-    
-    lastSensor = currentValue
-    blinkControl()  # Call the blink control function
-    
-# Create a periodic timer
-light_timer = Timer(1)
-light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Timer repeats every half second
 
 # Get MAC address
 wlan = network.WLAN(network.STA_IF)
@@ -99,13 +75,10 @@ uart = UART(1, baudrate=9600,tx=43,rx=44)  # Example pins for ESP32
 mac_timer = Timer(2)
 mac_timer.init(mode=Timer.PERIODIC, period=1000, callback=lambda t: send_mac_address(uart, mac_str))
 
-
-
-
-left_LPin = PWM(Pin(13), freq=1_000, duty_u16=0)
-left_RPin = PWM(Pin(5), freq=1_000, duty_u16=0)
-right_LPin = PWM(Pin(16), freq=1_000, duty_u16=0)
-right_RPin = PWM(Pin(4), freq=1_000, duty_u16=0)
+left_LPin = PWM(Pin(3), freq=1_000, duty_u16=0)
+left_RPin = PWM(Pin(46), freq=1_000, duty_u16=0)
+right_LPin = PWM(Pin(45), freq=1_000, duty_u16=0)
+right_RPin = PWM(Pin(48), freq=1_000, duty_u16=0)
 
 _IRQ_SCAN_RESULT = const(5)
 _IRQ_SCAN_COMPLETE = const(6)
@@ -123,6 +96,8 @@ class ESPJoystick:
         self.scanning = False
         self.x = 128
         self.y = 128
+        self.x2 = 128
+        self.y2 = 128
         self.trigger = False
         self.btnA = False
         self.btnB = False
@@ -139,21 +114,46 @@ class ESPJoystick:
         self.addr = addr
         self.start_scan()
 
-    def handle_joystick_input(self, data):
-        if len(data) >= 2:
-            # data = b'008000800080008000000000090000'
-            #forward 82820000
-            #right ffff0080
-            #left 00007b7b
-            #backward 8c8cffff
-            self.btnA = (data[7] & 1 != 0)
-            self.btnB = (data[7] & 2 != 0)
-            self.btnX = (data[7] & 4 != 0)
-            self.btnY = (data[7] & 8 != 0)
-            self.trigger = (data[8] & 8 != 0)
-            self.x = data[2] #0-255, 128 is stop
-            self.y = data[3] #0-255, 128 is stop
-            print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
+    def parse_sensor_string(self, data_str):
+        """Parse sensor string with button and joystick data.
+        Format: comma-separated values with buttons first,joystick voltage,
+        and last 4 values are joystick data.
+        0.29 maps to approximately 128.
+        """
+        try:
+            if isinstance(data_str, (bytes, bytearray)):
+                data_str = data_str.decode('utf-8')
+            elif not isinstance(data_str, str):
+                data_str = str(data_str)
+
+            values = []
+            for item in data_str.split(','):
+                item = item.strip()
+                if item:
+                    values.append(float(item))
+            if len(values) < 4:
+                return False
+            
+            # Process buttons (all values except last 4)
+            buttons = values[:-4]
+            self.btnA = False if len(buttons) > 0 and buttons[0] == 1 else bool(buttons[0]) if len(buttons) > 0 else False
+            self.btnB = bool(buttons[1]) if len(buttons) > 1 else False
+            self.btnX = bool(buttons[2]) if len(buttons) > 2 else False
+            self.btnY = bool(buttons[3]) if len(buttons) > 3 else False
+            self.trigger = bool(buttons[4]) if len(buttons) > 4 else False
+            
+            # Process joystick data (last 4 values)
+            # Map 0.0-0.83 range to 0-255, with 0.4 mapping to 128
+            joystick_data = values[-4:]
+            self.x = int(joystick_data[0]/0.83 * 255)
+            self.y = int(joystick_data[1]/0.83 * 255)
+            self.x2 = int(joystick_data[2]/0.83 * 255)
+            self.y2 = int(joystick_data[3]/0.83 * 255)
+            
+            print(f"Parsed - X: {self.x}, Y: {self.y}, X2: {self.x2}, Y2: {self.y2}, A: {self.btnA}, B: {self.btnB}, X: {self.btnX}, Y: {self.btnY}, Trigger: {self.trigger}")
+            return True
+        except (ValueError, IndexError):
+            return False
 
     def btnAPressed(self):
         ret = False
@@ -273,16 +273,16 @@ esp.active(True)
 
 def handle_espnow_message(peer, msg):
     try:
-        print('ESPNow from', hexlify(peer), msg)
-        # add message handling logic here, e.g. parse commands
+        peer_label = hexlify(peer) if isinstance(peer, (bytes, bytearray)) else str(peer)
+        #print('ESPNow from', peer_label, msg)
+        joystick.parse_sensor_string(msg)
     except Exception as e:
-        print('Error handling espnow msg', e)
+        print('Error handling espnow msg ', e)
 
 def check_espnow(timer):
-    print('trying esp')
+    #print('trying esp')
     try:
-        res = esp.recv()  # non-blocking
-        
+        res = esp.recv(timeout_ms=20)
         if res:
             peer, msg = res
             handle_espnow_message(peer, msg)
@@ -293,6 +293,28 @@ def check_espnow(timer):
 # periodic timer to poll espnow messages
 espnow_timer = Timer(3)
 espnow_timer.init(mode=Timer.PERIODIC, period=100, callback=check_espnow)
+
+# Callback function for the timer
+def measure_light(timer):
+    global count, lightPeriod, lightSensor, lastSensor, internalR, internalG, internalB, ledCount
+    currentValue = lightSensor.value()
+    if (currentValue == 1):
+        count += 5 #increment count by 50ms
+    
+    if lastSensor == 1 and currentValue == 0:
+        if lightPeriod == 0:
+            lightPeriod = count
+        else:
+            lightPeriod = round(count*2 * 0.5 + lightPeriod * 0.5) #filter results for more consistancy
+    if currentValue == 0:
+        count = 0
+    
+    lastSensor = currentValue
+    blinkControl()  # Call the blink control function
+    
+# Create a periodic timer
+light_timer = Timer(1)
+light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Timer repeats every half second
 
 def getLightSensorPeriod():
     global lightPeriod

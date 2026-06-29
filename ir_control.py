@@ -349,9 +349,9 @@ def callback(data, addr, ctrl):
         lastRXAddr = addr
         print('Data {:02x} Addr {:04x}'.format(data, addr))
 
-ir = NEC_8(Pin(18, Pin.IN), callback)
+ir = NEC_8(Pin(9, Pin.IN), callback)
 
-pin = Pin(19, Pin.OUT)
+pin = Pin(13, Pin.OUT)
 irTransmit = NEC(pin)
 
 def IR_send_message(addr, data):

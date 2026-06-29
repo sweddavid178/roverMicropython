@@ -3,9 +3,6 @@ from rover import *
 from ir_control import *
 import time
 
-#setup and start joystick
-joystick.setMacAddress(b'd0547b4c4b89')
-
 #global variables
 volacanoPeriod = 0
 

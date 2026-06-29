@@ -1,3 +1,4 @@
+#rename this file to main.py when running on the remote
 import time
 import machine
 import network
@@ -23,11 +24,11 @@ ANALOG_MAP = {
 
 # button id -> human name
 BUTTON_MAP = {
+    10: "right_trigger",
     7:  "left_trigger",
     5:  "left_button",
     8:  "right_button",
     9:  "btn0_left_down",
-    10: "btn1_missing",
     11: "btn2",
     12: "btn3",
     13: "btn4",

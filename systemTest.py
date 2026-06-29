@@ -1,4 +1,4 @@
-from rover import set_internal_led, set_external_led, setServoAngle, drive
+from rover import set_internal_led, set_external_led, setServoAngle, drive, getLightSensorPeriod
 from time import sleep
 from ir_control import IR_get_last_rx_message, irTransmit, IR_send_message
 
