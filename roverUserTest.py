@@ -15,14 +15,14 @@ while True:
     drive(joystick.x, joystick.y)
 
     #if trigger is held
-    if joystick.trigger:
+    if joystick.triggerHeld():
         setServoAngle(0)
         #IR_send_message(20,44)
     else:
         setServoAngle(45)  
 
     #volcano challenge
-    if joystick.btnA == 1:
+    if joystick.btnAHeld():
         volacanoPeriod = getLightSensorPeriod()
         print("volcano period: " + str(volacanoPeriod))
     if joystick.btnXPressed() == True:

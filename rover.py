@@ -115,16 +115,16 @@ class BLEJoystick:
         self.scanning = False
         self.x = 128
         self.y = 128
-        self.trigger = False
-        self.btnA = False
-        self.btnB = False
-        self.btnX = False
-        self.btnY = False
-        self.lastTrigger = False
-        self.lastBtnA = False
-        self.lastBtnB = False
-        self.lastBtnX = False
-        self.lastBtnY = False
+        self._trigger = False
+        self._btnA = False
+        self._btnB = False
+        self._btnX = False
+        self._btnY = False
+        self._lastTrigger = False
+        self._lastBtnA = False
+        self._lastBtnB = False
+        self._lastBtnX = False
+        self._lastBtnY = False
         self.addr = b''
 
     def setMacAddress(self, addr):
@@ -176,45 +176,55 @@ class BLEJoystick:
             #right ffff0080
             #left 00007b7b
             #backward 8c8cffff
-            self.btnA = (data[7] & 1 != 0)
-            self.btnB = (data[7] & 2 != 0)
-            self.btnX = (data[7] & 4 != 0)
-            self.btnY = (data[7] & 8 != 0)
-            self.trigger = (data[8] & 8 != 0)
+            self._btnA = (data[7] & 1 != 0)
+            self._btnB = (data[7] & 2 != 0)
+            self._btnX = (data[7] & 4 != 0)
+            self._btnY = (data[7] & 8 != 0)
+            self._trigger = (data[8] & 8 != 0)
             self.x = data[2] #0-255, 128 is stop
             self.y = data[3] #0-255, 128 is stop
-            print(f"Joystick X: {self.x}, Y: {self.y}, a {self.btnA},b {self.btnB},x {self.btnX},y {self.btnY}, trg {self.trigger}  {hexlify(data)}")
+            print(f"Joystick X: {self.x}, Y: {self.y}, a {self._btnA},b {self._btnB},x {self._btnX},y {self._btnY}, trg {self._trigger}  {hexlify(data)}")
 
     def btnAPressed(self):
         ret = False
-        if self.btnA == True and self.lastBtnA == False:
+        if self._btnA == True and self._lastBtnA == False:
             ret = True
-        self.lastBtnA = self.btnA
+        self._lastBtnA = self._btnA
         return ret
+    def btnAHeld(self):
+        return self._btnA == 1
     def btnBPressed(self):
         ret = False
-        if self.btnB == True and self.lastBtnB == False:
+        if self._btnB == True and self._lastBtnB == False:
             ret = True
-        self.lastBtnB = self.btnB
+        self._lastBtnB = self._btnB
         return ret
+    def btnBHeld(self):
+        return self._btnB == 1
     def btnXPressed(self):
         ret = False
-        if self.btnX == True and self.lastBtnX == False:
+        if self._btnX == True and self._lastBtnX == False:
             ret = True
-        self.lastBtnX = self.btnX
+        self._lastBtnX = self._btnX
         return ret
+    def btnXHeld(self):
+        return self._btnX == 1
     def btnYPressed(self):
         ret = False
-        if self.btnY == True and self.lastBtnY == False:
+        if self._btnY == True and self._lastBtnY == False:
             ret = True
-        self.lastBtnY = self.btnY
+        self._lastBtnY = self._btnY
         return ret
+    def btnYHeld(self):
+        return self._btnY == 1
     def triggerPressed(self):
         ret = False
-        if self.trigger == True and self.lastTrigger == False:
+        if self._trigger == True and self._lastTrigger == False:
             ret = True
-        self.lastTrigger = self.trigger
+        self._lastTrigger = self._trigger
         return ret  
+    def triggerHeld(self):
+        return self._trigger == 1
 
     def start_scan(self):
         print("Scanning for joystick...")
