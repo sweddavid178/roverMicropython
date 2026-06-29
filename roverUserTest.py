@@ -12,17 +12,17 @@ while True:
     drive(joystick.x, joystick.y)
 
     #if trigger is held
-    if joystick.trigger:
+    if joystick.right_trigger:
         setServoAngle(0)
         #IR_send_message(20,44)
     else:
         setServoAngle(45)  
 
     #volcano challenge
-    if joystick.btnA == 1:
+    if joystick.left_down == 1:
         volacanoPeriod = getLightSensorPeriod()
         print("volcano period: " + str(volacanoPeriod))
-    if joystick.btnXPressed() == True:
+    if joystick.right_middlePressed() == True:
         IR_send_message(200,volacanoPeriod) 
         
     #ir challenge
@@ -39,7 +39,7 @@ while True:
             set_internal_led(0,0,100)
     
     #pressed is only true once
-    if joystick.btnBPressed() == True:
+    if joystick.left_triggerPressed() == True:
         IR_send_message(100,100)
     
     

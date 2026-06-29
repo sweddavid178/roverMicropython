@@ -108,6 +108,39 @@ class ESPJoystick:
         self.lastBtnB = False
         self.lastBtnX = False
         self.lastBtnY = False
+        """
+            9,#:  "left_down",
+            46,#: "left_middle",
+            15,#: "left_up",
+            47,#: "left_thumb",
+            7,#:  "left_trigger",
+            35,#: "right_down",
+            36,#: "right_middle",
+            37,#: "right_up",
+            39,#: "right_thumb",
+            40,#: "right_trigger",
+        """
+        self.left_down = False
+        self.left_middle = False
+        self.left_up = False
+        self.left_thumb = False
+        self.left_trigger = False
+        self.right_down = False
+        self.right_middle = False
+        self.right_up = False
+        self.right_thumb = False
+        self.right_trigger = False
+        self.last_left_down = False
+        self.last_left_middle = False
+        self.last_left_up = False
+        self.last_left_thumb = False
+        self.last_left_trigger = False
+        self.last_right_down = False
+        self.last_right_middle = False
+        self.last_right_up = False
+        self.last_right_thumb = False
+        self.last_right_trigger = False
+        
         self.addr = b''
 
     def setMacAddress(self, addr):
@@ -136,12 +169,18 @@ class ESPJoystick:
             
             # Process buttons (all values except last 4)
             buttons = values[:-4]
-            self.btnA = False if len(buttons) > 0 and buttons[0] == 1 else bool(buttons[0]) if len(buttons) > 0 else False
-            self.btnB = bool(buttons[1]) if len(buttons) > 1 else False
-            self.btnX = bool(buttons[2]) if len(buttons) > 2 else False
-            self.btnY = bool(buttons[3]) if len(buttons) > 3 else False
-            self.trigger = bool(buttons[4]) if len(buttons) > 4 else False
-            
+            self.left_down = not bool(buttons[0]) if len(buttons) > 1 else False
+            self.left_middle = not bool(buttons[1]) if len(buttons) > 2 else False
+            self.left_up = not bool(buttons[2]) if len(buttons) > 3 else False
+            self.left_thumb = not bool(buttons[3]) if len(buttons) > 4 else False
+            self.left_trigger = not bool(buttons[4]) if len(buttons) > 5 else False
+            self.right_down = not bool(buttons[5]) if len(buttons) > 6 else False
+            self.right_middle = not bool(buttons[6]) if len(buttons) > 7 else False
+            self.right_up = not bool(buttons[7]) if len(buttons) > 8 else False
+            self.right_thumb = not bool(buttons[8]) if len(buttons) > 9 else False
+            self.right_trigger = not bool(buttons[9]) if len(buttons) > 10 else False
+
+
             # Process joystick data (last 4 values)
             # Map 0.0-0.83 range to 0-255, with 0.4 mapping to 128
             joystick_data = values[-4:]
@@ -150,41 +189,72 @@ class ESPJoystick:
             self.x2 = int(joystick_data[2]/0.83 * 255)
             self.y2 = int(joystick_data[3]/0.83 * 255)
             
-            print(f"Parsed - X: {self.x}, Y: {self.y}, X2: {self.x2}, Y2: {self.y2}, A: {self.btnA}, B: {self.btnB}, X: {self.btnX}, Y: {self.btnY}, Trigger: {self.trigger}")
+            #print(f"Parsed joystick data: x={self.x}, y={self.y}, x2={self.x2}, y2={self.y2}")
+            print(f"Parsed button data: left_down={self.left_down}, left_middle={self.left_middle}, left_up={self.left_up}, left_thumb={self.left_thumb}, left_trigger={self.left_trigger}, right_down={self.right_down}, right_middle={self.right_middle}, right_up={self.right_up}, right_thumb={self.right_thumb}, right_trigger={self.right_trigger}")
             return True
         except (ValueError, IndexError):
             return False
 
-    def btnAPressed(self):
+    def left_downPressed(self):
         ret = False
-        if self.btnA == True and self.lastBtnA == False:
+        if self.left_down == True and self.last_left_down == False:
             ret = True
-        self.lastBtnA = self.btnA
+        self.last_left_down = self.left_down
         return ret
-    def btnBPressed(self):
+    def left_middlePressed(self):
         ret = False
-        if self.btnB == True and self.lastBtnB == False:
+        if self.left_middle == True and self.last_left_middle == False:
             ret = True
-        self.lastBtnB = self.btnB
+        self.last_left_middle = self.left_middle
         return ret
-    def btnXPressed(self):
+    def left_upPressed(self):
         ret = False
-        if self.btnX == True and self.lastBtnX == False:
+        if self.left_up == True and self.last_left_up == False:
             ret = True
-        self.lastBtnX = self.btnX
+        self.last_left_up = self.left_up
         return ret
-    def btnYPressed(self):
+    def left_thumbPressed(self):
         ret = False
-        if self.btnY == True and self.lastBtnY == False:
+        if self.left_thumb == True and self.last_left_thumb == False:
             ret = True
-        self.lastBtnY = self.btnY
+        self.last_left_thumb = self.left_thumb
         return ret
-    def triggerPressed(self):
+    def left_triggerPressed(self):
         ret = False
-        if self.trigger == True and self.lastTrigger == False:
+        if self.left_trigger == True and self.last_left_trigger == False:
             ret = True
-        self.lastTrigger = self.trigger
-        return ret  
+        self.last_left_trigger = self.left_trigger
+        return ret
+    def right_downPressed(self):
+        ret = False
+        if self.right_down == True and self.last_right_down == False:
+            ret = True
+        self.last_right_down = self.right_down
+        return ret
+    def right_middlePressed(self):
+        ret = False
+        if self.right_middle == True and self.last_right_middle == False:
+            ret = True
+        self.last_right_middle = self.right_middle
+        return ret
+    def right_upPressed(self):
+        ret = False
+        if self.right_up == True and self.last_right_up == False:
+            ret = True
+        self.last_right_up = self.right_up
+        return ret
+    def right_thumbPressed(self):
+        ret = False
+        if self.right_thumb == True and self.last_right_thumb == False:
+            ret = True
+        self.last_right_thumb = self.right_thumb
+        return ret
+    def right_triggerPressed(self):
+        ret = False
+        if self.right_trigger == True and self.last_right_trigger == False:
+            ret = True
+        self.last_right_trigger = self.right_trigger
+        return ret
 
     def start_scan(self):
         print("Scanning for joystick...")
@@ -319,3 +389,4 @@ light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Time
 def getLightSensorPeriod():
     global lightPeriod
     return lightPeriod
+

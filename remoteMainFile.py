@@ -23,26 +23,18 @@ ANALOG_MAP = {
 }
 
 # button id -> human name
-BUTTON_MAP = {
-    10: "right_trigger",
-    7:  "left_trigger",
-    5:  "left_button",
-    8:  "right_button",
-    9:  "btn0_left_down",
-    11: "btn2",
-    12: "btn3",
-    13: "btn4",
-    14: "btn5",
-    15: "btn6_left_up",
-    16: "btn7",
-    46: "left_middle",
-    40: "right_trigger",
-    37: "right_up",
-    36: "right_middle",
-    35: "right_down",
-    39: "right_thumb",
-    47: "left_thumb",
-}
+BUTTON_LIST = [
+    9,#:  "left_down",
+    46,#: "left_middle",
+    15,#: "left_up",
+    47,#: "left_thumb",
+    7,#:  "left_trigger",
+    35,#: "right_down",
+    36,#: "right_middle",
+    37,#: "right_up",
+    39,#: "right_thumb",
+    40,#: "right_trigger",
+]
 
 def _read_adc_value(pin_no):
     """Try to read an analog value from the given GPIO pin number.
@@ -81,16 +73,17 @@ def read_all_analog_values(analog_map):
             readings += f"0.000,"  # or "ERROR" if you prefer
     return readings
 
-def read_all_button_states(button_map):
-    """Read all button states from the given map of id -> name.
+def read_all_button_states(button_list):
+    """Read all button states from the given list of id -> name pairs.
     Returns a string of comma-separated names for pressed buttons.
     """
     readings = ""
-    for bid, name in button_map.items():
+    # iterate in order of numeric key to ensure consistent ordering
+
+    for btn in button_list:
         try:
-            pin = machine.Pin(bid, machine.Pin.IN, machine.Pin.PULL_UP)
+            pin = machine.Pin(btn, machine.Pin.IN, machine.Pin.PULL_UP)
             readings += f"{pin.value()},"
-            
         except Exception:
             pass  # ignore errors for missing pins
     return readings
@@ -186,7 +179,7 @@ if __name__ == "__main__":
             e.add_peer(mac_bytes)  # Add the saved MAC address as a peer
 
         while True:
-            buttons = read_all_button_states(BUTTON_MAP)
+            buttons = read_all_button_states(BUTTON_LIST)
             analogs = read_all_analog_values(ANALOG_MAP)
             out = buttons + analogs 
             print(out)
