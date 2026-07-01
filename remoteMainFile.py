@@ -166,6 +166,24 @@ def clear_all_peers(esp):
     except Exception:
         pass
 
+def set_right_led(r, g, b, r_pin=38, g_pin=41, b_pin=42):
+    """Set the right LED color using PWM."""
+    try:
+        pwm_r = machine.PWM(machine.Pin(r_pin), freq=1000)
+        pwm_g = machine.PWM(machine.Pin(g_pin), freq=1000)
+        pwm_b = machine.PWM(machine.Pin(b_pin), freq=1000)
+
+        # Convert 0-100 range to 0-1023 for PWM duty cycle
+        duty_r = int(((100-r) / 100) * 1023)
+        duty_g = int(((100-g) / 100) * 1023)
+        duty_b = int(((100-b) / 100) * 1023)
+
+        pwm_r.duty(duty_r)
+        pwm_g.duty(duty_g)
+        pwm_b.duty(duty_b)
+    except Exception as e:
+        print('Failed to set right LED color:', e)
+
 if __name__ == "__main__":
 
     try:
@@ -177,7 +195,8 @@ if __name__ == "__main__":
         if mac_bytes:
             print('Using saved MAC address:', mac_bytes)
             e.add_peer(mac_bytes)  # Add the saved MAC address as a peer
-
+        else:
+            set_right_led(50, 0, 0)  # Set right LED to red to indicate no MAC address
         while True:
             buttons = read_all_button_states(BUTTON_LIST)
             analogs = read_all_analog_values(ANALOG_MAP)
@@ -187,6 +206,7 @@ if __name__ == "__main__":
             if check_for_mac_address(uart):
                 mac_bytes = load_saved_mac_address()  # Reload the MAC address after receiving it
                 if mac_bytes:
+                    #set_right_led(0, 100, 100)  # Set right LED to yellow to indicate successful MAC address reception
                     print('Using new saved MAC address:', mac_bytes)
                     clear_all_peers(e)  # Clear existing peers before adding the new one
                     e.active(False)  # Deactivate ESP-NOW to reset peer list
@@ -194,9 +214,13 @@ if __name__ == "__main__":
                     e.add_peer(mac_bytes)  # Add the new MAC address as a peer
             if mac_bytes:
                 try:
-                    e.send(mac_bytes, out.encode())  # Send the combined button and analog data to the peer
+                    if e.send(mac_bytes, out.encode()):  # Send the combined button and analog data to the peer
+                        set_right_led(0, 50, 0)  # Set right LED to green to indicate successful data send
+                    else:
+                        set_right_led(50, 50, 0)  # Set right LED to yellow to indicate data send failure
                 except Exception as err:
                     print('Failed to send data:', err)
+                    set_right_led(50, 50, 0)  # Set right LED to red to indicate data send failure
 
             time.sleep(0.1)
     except KeyboardInterrupt:
