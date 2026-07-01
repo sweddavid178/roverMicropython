@@ -94,10 +94,10 @@ class ESPJoystick:
         self.joystick_char = None
         self.found_device = None
         self.scanning = False
-        self.x = 128
-        self.y = 128
-        self.x2 = 128
-        self.y2 = 128
+        self.right_x = 128
+        self.right_y = 128
+        self.left_x = 128
+        self.left_y = 128
         self.trigger = False
         self.btnA = False
         self.btnB = False
@@ -169,91 +169,112 @@ class ESPJoystick:
             
             # Process buttons (all values except last 4)
             buttons = values[:-4]
-            self.left_down = not bool(buttons[0]) if len(buttons) > 1 else False
-            self.left_middle = not bool(buttons[1]) if len(buttons) > 2 else False
-            self.left_up = not bool(buttons[2]) if len(buttons) > 3 else False
-            self.left_thumb = not bool(buttons[3]) if len(buttons) > 4 else False
-            self.left_trigger = not bool(buttons[4]) if len(buttons) > 5 else False
-            self.right_down = not bool(buttons[5]) if len(buttons) > 6 else False
-            self.right_middle = not bool(buttons[6]) if len(buttons) > 7 else False
-            self.right_up = not bool(buttons[7]) if len(buttons) > 8 else False
-            self.right_thumb = not bool(buttons[8]) if len(buttons) > 9 else False
-            self.right_trigger = not bool(buttons[9]) if len(buttons) > 10 else False
+            self._left_down = not bool(buttons[0]) if len(buttons) > 1 else False
+            self._left_middle = not bool(buttons[1]) if len(buttons) > 2 else False
+            self._left_up = not bool(buttons[2]) if len(buttons) > 3 else False
+            self._left_thumb = not bool(buttons[3]) if len(buttons) > 4 else False
+            self._left_trigger = not bool(buttons[4]) if len(buttons) > 5 else False
+            self._right_down = not bool(buttons[5]) if len(buttons) > 6 else False
+            self._right_middle = not bool(buttons[6]) if len(buttons) > 7 else False
+            self._right_up = not bool(buttons[7]) if len(buttons) > 8 else False
+            self._right_thumb = not bool(buttons[8]) if len(buttons) > 9 else False
+            self._right_trigger = not bool(buttons[9]) if len(buttons) > 10 else False
 
 
             # Process joystick data (last 4 values)
             # Map 0.0-0.83 range to 0-255, with 0.4 mapping to 128
             joystick_data = values[-4:]
-            self.x = int(joystick_data[0]/0.83 * 255)
-            self.y = int(joystick_data[1]/0.83 * 255)
-            self.x2 = int(joystick_data[2]/0.83 * 255)
-            self.y2 = int(joystick_data[3]/0.83 * 255)
-            
-            #print(f"Parsed joystick data: x={self.x}, y={self.y}, x2={self.x2}, y2={self.y2}")
-            print(f"Parsed button data: left_down={self.left_down}, left_middle={self.left_middle}, left_up={self.left_up}, left_thumb={self.left_thumb}, left_trigger={self.left_trigger}, right_down={self.right_down}, right_middle={self.right_middle}, right_up={self.right_up}, right_thumb={self.right_thumb}, right_trigger={self.right_trigger}")
+            self.right_x = int(joystick_data[0]/0.83 * 255)
+            self.right_y = int(joystick_data[1]/0.83 * 255)
+            self.left_x = int(joystick_data[2]/0.83 * 255)
+            self.left_y = int(joystick_data[3]/0.83 * 255)
+
+            #print(f"Parsed joystick data: x={self.right_x}, y={self.right_y}, x2={self.left_x}, y2={self.left_y}")
+            print(f"Parsed button data: left_down={self._left_down}, left_middle={self._left_middle}, left_up={self._left_up}, left_thumb={self._left_thumb}, left_trigger={self._left_trigger}, right_down={self._right_down}, right_middle={self._right_middle}, right_up={self._right_up}, right_thumb={self._right_thumb}, right_trigger={self._right_trigger}")
             return True
         except (ValueError, IndexError):
             return False
 
-    def left_downPressed(self):
+    def left_down_btn_held(self):
+        return self._left_down
+    def left_middle_btn_held(self):
+        return self._left_middle
+    def left_up_btn_held(self):
+        return self._left_up
+    def left_thumb_btn_held(self):
+        return self._left_thumb
+    def left_trigger_btn_held(self):
+        return self._left_trigger
+    def right_down_btn_held(self):
+        return self._right_down
+    def right_middle_btn_held(self):
+        return self._right_middle
+    def right_up_btn_held(self):
+        return self._right_up
+    def right_thumb_btn_held(self):
+        return self._right_thumb
+    def right_trigger_btn_held(self):
+        return self._right_trigger
+
+    def left_down_btn_pressed(self):
         ret = False
-        if self.left_down == True and self.last_left_down == False:
+        if self._left_down == True and self.last_left_down == False:
             ret = True
-        self.last_left_down = self.left_down
+        self.last_left_down = self._left_down
         return ret
-    def left_middlePressed(self):
+    def left_middle_btn_pressed(self):
         ret = False
-        if self.left_middle == True and self.last_left_middle == False:
+        if self._left_middle == True and self.last_left_middle == False:
             ret = True
-        self.last_left_middle = self.left_middle
+        self.last_left_middle = self._left_middle
         return ret
-    def left_upPressed(self):
+    def left_up_btn_pressed(self):
         ret = False
-        if self.left_up == True and self.last_left_up == False:
+        if self._left_up == True and self.last_left_up == False:
             ret = True
-        self.last_left_up = self.left_up
+        self.last_left_up = self._left_up
         return ret
-    def left_thumbPressed(self):
+    def left_thumb_btn_pressed(self):
         ret = False
-        if self.left_thumb == True and self.last_left_thumb == False:
+        if self._left_thumb == True and self.last_left_thumb == False:
             ret = True
-        self.last_left_thumb = self.left_thumb
+        self.last_left_thumb = self._left_thumb
         return ret
-    def left_triggerPressed(self):
+    def left_trigger_btn_pressed(self):
         ret = False
-        if self.left_trigger == True and self.last_left_trigger == False:
+        if self._left_trigger == True and self.last_left_trigger == False:
             ret = True
-        self.last_left_trigger = self.left_trigger
+        self.last_left_trigger = self._left_trigger
         return ret
-    def right_downPressed(self):
+    def right_down_btn_pressed(self):
         ret = False
-        if self.right_down == True and self.last_right_down == False:
+        if self._right_down == True and self.last_right_down == False:
             ret = True
-        self.last_right_down = self.right_down
+        self.last_right_down = self._right_down
         return ret
-    def right_middlePressed(self):
+    def right_middle_btn_pressed(self):
         ret = False
-        if self.right_middle == True and self.last_right_middle == False:
+        if self._right_middle == True and self.last_right_middle == False:
             ret = True
-        self.last_right_middle = self.right_middle
+        self.last_right_middle = self._right_middle
         return ret
-    def right_upPressed(self):
+    def right_up_btn_pressed(self):
         ret = False
-        if self.right_up == True and self.last_right_up == False:
+        if self._right_up == True and self.last_right_up == False:
             ret = True
-        self.last_right_up = self.right_up
+        self.last_right_up = self._right_up
         return ret
-    def right_thumbPressed(self):
+    def right_thumb_btn_pressed(self):
         ret = False
-        if self.right_thumb == True and self.last_right_thumb == False:
+        if self._right_thumb == True and self.last_right_thumb == False:
             ret = True
-        self.last_right_thumb = self.right_thumb
+        self.last_right_thumb = self._right_thumb
         return ret
-    def right_triggerPressed(self):
+    def right_trigger_btn_pressed(self):
         ret = False
-        if self.right_trigger == True and self.last_right_trigger == False:
+        if self._right_trigger == True and self.last_right_trigger == False:
             ret = True
-        self.last_right_trigger = self.right_trigger
+        self.last_right_trigger = self._right_trigger
         return ret
 
     def start_scan(self):
