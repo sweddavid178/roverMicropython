@@ -29,11 +29,15 @@ def clamp(n, minn, maxn):
 int_red_pin = Pin(16, Pin.OUT)
 int_green_pin = Pin(15, Pin.OUT)
 int_blue_pin = Pin(7, Pin.OUT)
+status_led = Pin(47, Pin.OUT)
+
+def set_status_led(val):
+    status_led.value(val)
 
 def m_set_internal_led(red,green,blue):
-    int_red_pin.value(1 if red > 0 else 0)
-    int_green_pin.value(1 if green > 0 else 0)
-    int_blue_pin.value(1 if blue > 0 else 0)
+    int_red_pin.value(0 if red > 0 else 1)
+    int_green_pin.value(0 if green > 0 else 1)
+    int_blue_pin.value(0 if blue > 0 else 1)
     
 
 def blinkControl():
@@ -120,16 +124,16 @@ class ESPJoystick:
             39,#: "right_thumb",
             40,#: "right_trigger",
         """
-        self.left_down = False
-        self.left_middle = False
-        self.left_up = False
-        self.left_thumb = False
-        self.left_trigger = False
-        self.right_down = False
-        self.right_middle = False
-        self.right_up = False
-        self.right_thumb = False
-        self.right_trigger = False
+        self._left_down = False
+        self._left_middle = False
+        self._left_up = False
+        self._left_thumb = False
+        self._left_trigger = False
+        self._right_down = False
+        self._right_middle = False
+        self._right_up = False
+        self._right_thumb = False
+        self._right_trigger = False
         self.last_left_down = False
         self.last_left_middle = False
         self.last_left_up = False
@@ -190,7 +194,7 @@ class ESPJoystick:
             self.left_y = int(joystick_data[3]/0.83 * 255)
 
             #print(f"Parsed joystick data: x={self.right_x}, y={self.right_y}, x2={self.left_x}, y2={self.left_y}")
-            print(f"Parsed button data: left_down={self._left_down}, left_middle={self._left_middle}, left_up={self._left_up}, left_thumb={self._left_thumb}, left_trigger={self._left_trigger}, right_down={self._right_down}, right_middle={self._right_middle}, right_up={self._right_up}, right_thumb={self._right_thumb}, right_trigger={self._right_trigger}")
+            #print(f"Parsed button data: left_down={self._left_down}, left_middle={self._left_middle}, left_up={self._left_up}, left_thumb={self._left_thumb}, left_trigger={self._left_trigger}, right_down={self._right_down}, right_middle={self._right_middle}, right_up={self._right_up}, right_thumb={self._right_thumb}, right_trigger={self._right_trigger}")
             return True
         except (ValueError, IndexError):
             return False
@@ -355,8 +359,7 @@ def set_external_led(red,green,blue):
     b = U16 - min(max(math.floor((1-blue / 100) * U16), 0), U16)
     ext_blue_pwm.duty_u16(b)
 #set_external_led(0,0,0)
-joystick = ESPJoystick()
-#joystick.start_scan()
+remote = ESPJoystick()
 
 # ESP-NOW setup
 esp = espnow.ESPNow()
@@ -366,17 +369,21 @@ def handle_espnow_message(peer, msg):
     try:
         peer_label = hexlify(peer) if isinstance(peer, (bytes, bytearray)) else str(peer)
         #print('ESPNow from', peer_label, msg)
-        joystick.parse_sensor_string(msg)
+        if peer_label == None or msg == None:
+            set_status_led(1)
+        else:
+            set_status_led(0)
+        remote.parse_sensor_string(msg)
     except Exception as e:
         print('Error handling espnow msg ', e)
 
 def check_espnow(timer):
-    #print('trying esp')
     try:
         res = esp.recv(timeout_ms=20)
         if res:
             peer, msg = res
             handle_espnow_message(peer, msg)
+            
     except Exception as e:
         # recv may raise if not ready; ignore
         pass
@@ -410,4 +417,5 @@ light_timer.init(mode=Timer.PERIODIC, period=50, callback=measure_light)  # Time
 def getLightSensorPeriod():
     global lightPeriod
     return lightPeriod
+
 
