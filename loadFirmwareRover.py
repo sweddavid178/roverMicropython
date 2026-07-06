@@ -12,12 +12,9 @@ com_port = ports[0].device
 print(f"Using COM port: {com_port}")
 
 commands = [
-    ["esptool", "erase_flash"],
-    ["esptool", "--baud", "460800", "write_flash", "0x1000", "ESP32_GENERIC-20250415-v1.25.0.bin"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "rover.py", ":rover.py"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "ir_control.py", ":ir_control.py"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "main.py", ":main.py"],
-    #["python", "pyboard.py", "--device", com_port, "systemTest.py"],
 ]
 for cmd in commands:
     print(f"Running: {' '.join(cmd)}")
@@ -25,6 +22,6 @@ for cmd in commands:
     if result.returncode != 0:
         print(f"Command failed: {' '.join(cmd)}")
         sys.exit(result.returncode)
-    time.sleep(2)  # Wait for 2 seconds between commands
+    time.sleep(1)  # Wait for 2 seconds between commands
 
 print("All commands completed successfully.")

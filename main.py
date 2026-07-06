@@ -9,7 +9,7 @@ volacanoPeriod = 0
 #main loop
 while True:
     #drive control
-    #drive(joystick.x, joystick.y)
+    #drive(remote.right_x, remote.right_y)
     test_mode()
     
     time.sleep(0.05) #loop speed controller
