@@ -347,9 +347,9 @@ def set_internal_led(red,green,blue):
     internalB = blue
     #m_set_internal_led(internalR, internalG, internalB)
     
-#ext_red_pwm = PWM(Pin(8), freq=1_000, duty_u16=U16)
-#ext_green_pwm = PWM(Pin(18), freq=1_000, duty_u16=U16)
-#ext_blue_pwm = PWM(Pin(27), freq=1_000, duty_u16=U16)
+ext_red_pwm = PWM(Pin(8), freq=1_000, duty_u16=U16)
+ext_green_pwm = PWM(Pin(18), freq=1_000, duty_u16=U16)
+ext_blue_pwm = PWM(Pin(17), freq=1_000, duty_u16=U16)
 
 #input values are 0-100, with 100 being max brightness
 def set_external_led(red,green,blue):
