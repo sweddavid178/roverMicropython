@@ -4,7 +4,7 @@ from ir_control import *
 import time
 
 #global variables
-volacanoPeriod = 0
+volcanoPeriod = 0
 
 #main loop
 while True:

@@ -419,7 +419,9 @@ def getLightSensorPeriod():
     global lightPeriod
     return lightPeriod
 
+volcanoPeriod=50
 def test_mode():
+    global volcanoPeriod
     #drive control
     drive(remote.right_x, remote.right_y)
 
@@ -453,4 +455,3 @@ def test_mode():
     #pressed is only true once
     if remote.left_trigger_btn_pressed() == True:
         IR_send_message(100,100)
-
