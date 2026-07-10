@@ -14,6 +14,7 @@ com_port = find_com_port()
 print(f"Using COM port: {com_port}")
 
 commands = [
+    ["python", "pyboard.py", "--device", com_port, "-f", "cp", "received_mac.txt", ":received_mac.txt"],
     ["python", "pyboard.py", "--device", com_port, "-f", "cp", "remoteMainFile.py", ":main.py"],
 ]
 for cmd in commands:
